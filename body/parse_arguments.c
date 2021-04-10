@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "program_settings.h"
+#include "string_util.h"
 
 /*> Defines **********************************************************************************************************/
 
@@ -25,10 +26,6 @@
 /*> Local Variable Definitions ***************************************************************************************/
 
 /*> Local Function Declarations **************************************************************************************/
-static inline bool strings_are_equal(char* str1, char* str2);
-
-static bool is_numeric_string(char* str);
-
 static void initatalize_settings(Program_Settings* settings_p);
 
 static bool check_for_help_argument(char* argument_array[], int* argument_index_p, Program_Settings* settings_p);
@@ -39,39 +36,6 @@ static bool parse_option_arguments(int argument_count,
                                    Program_Settings* settings_p);
 
 /*> Local Function Definitions ***************************************************************************************/
-/**
- * @brief Checks if two are equals.
- * @param str1 [in] First string.
- * @param str2 [in] Second string.
- * @return True if str1 and str2 are equal, false otherwise.
- */
-static inline bool strings_are_equal(char* str1, char* str2)
-{
-  return strcmp(str1, str2) == 0;
-}
-
-/**
- * @brief Checks if the input string is made of only numeric characters.
- * @param str [in] The string.
- * @return True if the string only contain digit characters.
- */
-static bool is_numeric_string(char* str)
-{
-  int i = 0;
-
-  while (str[i] != '\0')
-  {
-    /* numeric chars '0'-'9' are  48-57 in ascii. */
-    if (str[i] < 48 || str[i] > 57)
-    {
-      return false;
-    }
-    i++;
-  }
-
-  return true;
-}
-
 /**
  * @brief Initalizes the settings struct with default values.
  * @param settings_p [out] Pointer to the settings structure for the execution of the program.

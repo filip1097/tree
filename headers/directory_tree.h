@@ -21,6 +21,7 @@
  * @param is_directory Indication whether path is a direcory. If false, it is a file.
  * @param is_base True if it is the top node of the tree.
  * @param path_string The string of the path to the directory/file.
+ * @param file_name The name of file this Directory_Tree represents.
  * @param children_count The number of children this node has, i.e. number of files/ directories this directory 
  *                       contains.
  * @param children An array of pointers to the children nodes of this node.
@@ -31,6 +32,7 @@ typedef struct Directory_Tree
   bool is_directory;
   bool is_base;
   char path_string[200];
+  char file_name[50];
   int children_count;
   struct Directory_Tree* children[MAX_NUMBER_CHILDREN];
 } Directory_Tree;

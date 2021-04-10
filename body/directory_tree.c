@@ -13,6 +13,7 @@
 #include <unistd.h>
 
 #include "directory_tree.h"
+#include "string_util.h"
 
 /*> Defines **********************************************************************************************************/
 
@@ -33,9 +34,9 @@ static bool is_symbolic_link(char* path_string);
 
 static bool path_exists(char* path_string);
 
-static inline char last_char(char* string);
-
 static void add_directory_tree_child(char* file_name, Directory_Tree* parent);
+
+static void print_node(Directory_Tree* dir_tree, int indentation);
 
 /*> Local Function Definitions ***************************************************************************************/
 /**
@@ -73,16 +74,6 @@ static bool path_exists(char* path_string)
 }
 
 /**
- * @brief Gets the last char of a string.
- * @param str [in] The string.
- * @return The last character of the string.
- */
-static inline char last_char(char* str)
-{
-  return str[strlen(str) - 1];
-}
-
-/**
  * @brief Creates and add a Directory Tree child to parent.
  * @param file_name [in] The name of the file in the parent directory.
  * @param parent [in/out] The Directory Tree node to add child to
@@ -98,12 +89,14 @@ static void add_directory_tree_child(char* file_name, Directory_Tree* parent)
   {
     Directory_Tree* new_dir_tree = (Directory_Tree*) malloc(sizeof(Directory_Tree));
     new_dir_tree->depth = new_depth;
-    new_dir_tree->is_directory = is_directory(new_path_string) && !is_symbolic_link(new_path_string);
+    new_dir_tree->is_directory = is_directory(new_path_string); 
     new_dir_tree->is_base = false;
     strcpy(new_dir_tree->path_string, new_path_string);
+    strcpy(new_dir_tree->file_name, file_name);
     if (new_dir_tree->is_directory)
     {
       strcat(new_dir_tree->path_string, "/");
+      strcat(new_dir_tree->file_name, "/");
     }
     new_dir_tree->children_count = 0;
 
@@ -117,14 +110,14 @@ static void add_directory_tree_child(char* file_name, Directory_Tree* parent)
         exit(1);
       }
 
-      printf("Opened directory %s\n", new_path_string);
-      printf("Is symbolic link: %d\n", is_symbolic_link(new_path_string));
-
       struct dirent* directory_entry_p = readdir(dir_stream_p);
       while (directory_entry_p != NULL)
       {
-        printf("Read %s\n", directory_entry_p->d_name);
-        add_directory_tree_child(directory_entry_p->d_name, new_dir_tree);
+        char* child_name = directory_entry_p->d_name;
+        if (!strings_are_equal(child_name, ".") && !strings_are_equal(child_name, ".."))
+        {
+          add_directory_tree_child(child_name, new_dir_tree);
+        }
         directory_entry_p = readdir(dir_stream_p);
       }
 
@@ -141,7 +134,43 @@ static void add_directory_tree_child(char* file_name, Directory_Tree* parent)
   }
 }
 
+/**
+ * @brief Prints one node in a Directory_Tree.
+ * @param dir_tree [in] The Directory_Tree node to print.
+ * @param indentation [in] The number of spaces this node will be printed.
+ */
+void print_node(Directory_Tree* dir_tree, int indentation)
+{
+  for (int i = 0; i < indentation; i++)
+  {
+    printf(" ");
+  }
+
+  if (dir_tree->is_base)
+  {
+    printf("%s\n", dir_tree->path_string);
+  }
+  else
+  {
+    printf("|- %s\n", dir_tree->file_name);
+  }
+
+  if (dir_tree->depth > 0)
+  {
+    for (int i = 0; i < dir_tree->children_count; i++)
+    {
+      print_node(dir_tree->children[i], indentation + 2);
+    }
+  }
+}
+
 /*> Global Function Definitions **************************************************************************************/
+/**
+ * @brief Creates the directory tree based on the base path provided.
+ * @param base_path_string [in] The base path as a string.
+ * @param depth [in] How far down relative the base directory to create children directory tree nodes.
+ * @return The pointer to the directory tree struct allocated.
+ */
 Directory_Tree* create_directory_tree(char* base_path_string, int depth)
 {
   if (path_exists(base_path_string))
@@ -151,8 +180,10 @@ Directory_Tree* create_directory_tree(char* base_path_string, int depth)
     dir_tree->is_directory = is_directory(base_path_string);
     dir_tree->is_base = true;
     strcpy(dir_tree->path_string, base_path_string);
+    strcpy(dir_tree->file_name, base_path_string);
     if (dir_tree->is_directory && last_char(dir_tree->path_string) != '/') {
       strcat(dir_tree->path_string, "/");
+      strcat(dir_tree->file_name, "/");
     }
     dir_tree->children_count = 0;
 
@@ -169,13 +200,18 @@ Directory_Tree* create_directory_tree(char* base_path_string, int depth)
       struct dirent* directory_entry_p = readdir(dir_stream_p);
       while (directory_entry_p != NULL)
       {
-        printf("Read %s\n", directory_entry_p->d_name);
-        add_directory_tree_child(directory_entry_p->d_name, dir_tree);
+        char* child_name = directory_entry_p->d_name;
+        if (!strings_are_equal(child_name, ".") && !strings_are_equal(child_name, ".."))
+        {
+          add_directory_tree_child(child_name, dir_tree);
+        }
         directory_entry_p = readdir(dir_stream_p);
       }
 
       closedir(dir_stream_p);
     }
+
+    return dir_tree;
   }
   else
   {
@@ -185,12 +221,24 @@ Directory_Tree* create_directory_tree(char* base_path_string, int depth)
 
 }
 
+/**
+ * @brief Frees the allocated memory of the Directory_Tree and all its children recursivly.
+ * @param dir_tree [in] Pointer to the Directory_Tree.
+ */
 void free_directory_tree(Directory_Tree* dir_tree)
 {
-  /* TODO */
+  for (int i = 0; i < dir_tree->children_count; i++)
+  {
+    free_directory_tree(dir_tree->children[i]);
+  }
+  free(dir_tree);
 }
 
+/**
+ * @brief Prints a directory tree.
+ * @param dir_tree [in] The Directory_Tree to print.
+ */
 void print_directory_tree(Directory_Tree* dir_tree)
 {
-  /* TODO */
+  print_node(dir_tree, 0);
 }
